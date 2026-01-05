@@ -66,7 +66,10 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
   return (
     <div class="editor">
       <header class="editor-header">
-        <h2 class="editor-title">Edit Script</h2>
+        <h2 class="editor-title">
+          <img src="/icons/icon48.png" alt="BareScript" width="24" height="24" />
+          Edit Script
+        </h2>
         <div class="editor-actions">
           <button class="btn-secondary" onClick={onCancel}>
             Cancel
