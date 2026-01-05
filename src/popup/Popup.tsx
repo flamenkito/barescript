@@ -51,9 +51,7 @@ export function Popup() {
     <div class="popup">
       <header class="popup-header">
         <div class="popup-title">
-          <svg viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/>
-          </svg>
+          <img src="/icons/icon48.png" alt="BareScript" width="24" height="24" />
           BareScript
         </div>
         <div
