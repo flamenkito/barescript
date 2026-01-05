@@ -1,0 +1,104 @@
+.editor {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.editor-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 300px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.matches-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.match-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-tertiary);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.match-remove {
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.match-remove:hover {
+  color: var(--accent);
+}
+
+.match-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.match-input-row input {
+  flex: 1;
+}
+
+.match-input-row button {
+  padding: 8px 16px;
+}
+
+.run-at-select {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.run-at-select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
