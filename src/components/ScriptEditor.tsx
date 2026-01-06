@@ -1,6 +1,91 @@
-import { useState } from 'preact/hooks';
+import { useState, useRef } from 'preact/hooks';
 import { parseMatchMetadata } from '@/utils/matcher';
 import type { UserScript } from '@/types/userscript';
+
+function getMetaBlockRange(code: string): { start: number; end: number } | null {
+  const startMatch = code.match(/\/\/\s*==UserScript==/);
+  const endMatch = code.match(/\/\/\s*==\/UserScript==/);
+  if (!startMatch || !endMatch) return null;
+  const start = startMatch.index!;
+  const end = endMatch.index! + endMatch[0].length;
+  return { start, end };
+}
+
+const JS_KEYWORDS = /\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|new|this|class|extends|import|export|from|default|async|await|yield|typeof|instanceof|in|of|null|undefined|true|false)\b/g;
+const JS_STRINGS = /(["'`])(?:(?!\1)[^\\]|\\.)*?\1/g;
+const JS_COMMENTS = /(\/\/.*$|\/\*[\s\S]*?\*\/)/gm;
+const JS_NUMBERS = /\b(\d+\.?\d*)\b/g;
+
+function highlightJs(code: string): string {
+  // Store replacements to avoid double-processing
+  const tokens: { start: number; end: number; html: string }[] = [];
+
+  // Find comments
+  let match;
+  while ((match = JS_COMMENTS.exec(code)) !== null) {
+    tokens.push({
+      start: match.index,
+      end: match.index + match[0].length,
+      html: `<span class="hl-comment">${escapeHtml(match[0])}</span>`,
+    });
+  }
+
+  // Find strings (skip if inside comment)
+  JS_STRINGS.lastIndex = 0;
+  while ((match = JS_STRINGS.exec(code)) !== null) {
+    const inToken = tokens.some((t) => match!.index >= t.start && match!.index < t.end);
+    if (!inToken) {
+      tokens.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        html: `<span class="hl-string">${escapeHtml(match[0])}</span>`,
+      });
+    }
+  }
+
+  // Sort by position
+  tokens.sort((a, b) => a.start - b.start);
+
+  // Build result
+  let result = '';
+  let lastEnd = 0;
+  for (const token of tokens) {
+    if (token.start > lastEnd) {
+      result += highlightKeywordsAndNumbers(escapeHtml(code.slice(lastEnd, token.start)));
+    }
+    result += token.html;
+    lastEnd = token.end;
+  }
+  if (lastEnd < code.length) {
+    result += highlightKeywordsAndNumbers(escapeHtml(code.slice(lastEnd)));
+  }
+
+  return result;
+}
+
+function highlightKeywordsAndNumbers(escaped: string): string {
+  return escaped
+    .replace(JS_KEYWORDS, '<span class="hl-keyword">$1</span>')
+    .replace(JS_NUMBERS, '<span class="hl-number">$1</span>');
+}
+
+function highlightCode(code: string): string {
+  const range = getMetaBlockRange(code);
+  if (!range) {
+    return highlightJs(code);
+  }
+  const before = highlightJs(code.slice(0, range.start));
+  const meta = `<mark class="meta-highlight">${escapeHtml(code.slice(range.start, range.end))}</mark>`;
+  const after = highlightJs(code.slice(range.end));
+  return `${before}${meta}${after}`;
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
 
 interface Props {
   script: UserScript;
@@ -73,6 +158,15 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
   const [runAt, setRunAt] = useState(script.runAt);
   const [code, setCode] = useState(script.code);
   const [newMatch, setNewMatch] = useState('');
+  const backdropRef = useRef<HTMLPreElement>(null);
+
+  function handleScroll(e: Event) {
+    const textarea = e.target as HTMLTextAreaElement;
+    if (backdropRef.current) {
+      backdropRef.current.scrollTop = textarea.scrollTop;
+      backdropRef.current.scrollLeft = textarea.scrollLeft;
+    }
+  }
 
   function handleNameChange(newName: string) {
     setName(newName);
@@ -207,7 +301,20 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
 
       <div class="form-group">
         <label class="form-label">Code</label>
-        <textarea class="form-textarea" value={code} onInput={handleCodeChange} spellcheck={false} />
+        <div class="code-editor">
+          <pre
+            ref={backdropRef}
+            class="code-backdrop"
+            dangerouslySetInnerHTML={{ __html: highlightCode(code) + '\n\n' }}
+          />
+          <textarea
+            class="code-textarea"
+            value={code}
+            onInput={handleCodeChange}
+            onScroll={handleScroll}
+            spellcheck={false}
+          />
+        </div>
       </div>
     </div>
   );
