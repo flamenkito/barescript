@@ -112,6 +112,31 @@
       gap: 24px;
       margin-bottom: 16px;
     }
+    .example {
+      background: var(--bg-secondary);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 60px;
+    }
+    .example h2 {
+      font-size: 24px;
+      margin-bottom: 16px;
+    }
+    .example pre {
+      background: var(--bg-primary);
+      border-radius: 8px;
+      padding: 16px;
+      overflow-x: auto;
+      font-family: 'SF Mono', Monaco, 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .example code {
+      color: var(--text-primary);
+    }
+    .example .comment { color: #6a9955; }
+    .example .string { color: #ce9178; }
+    .example .keyword { color: #569cd6; }
   </style>
 </head>
 <body>
@@ -142,6 +167,18 @@
         <h3>Dark Mode</h3>
         <p>Automatic dark mode support that follows your system preference.</p>
       </div>
+    </div>
+
+    <div class="example">
+      <h2>Example Script</h2>
+      <pre><code><span class="comment">// ==BareScript==
+// @name        Example
+// @match       https://example.com/*
+// @run-at      document-end
+// ==/BareScript==</span>
+
+document.body.style.background = <span class="string">'#1a1a1a'</span>;
+document.body.style.color = <span class="string">'#ffffff'</span>;</code></pre>
     </div>
 
     <footer class="footer">
