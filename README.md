@@ -1,6 +1,10 @@
-# BareScript
+<div align="center">
+  <img src="assets/bs.png" alt="BareScript Logo" width="128">
+  <h1>BareScript</h1>
+  <p><strong>Lightweight Userscript Manager for Chrome</strong></p>
+</div>
 
-A lightweight Chrome extension for running custom userscripts. A minimal alternative to Tampermonkey.
+A minimal alternative to Tampermonkey for running custom scripts on any website.
 
 ## Features
 
