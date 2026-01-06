@@ -8,6 +8,65 @@ interface Props {
   onCancel: () => void;
 }
 
+function parseRunAt(code: string): UserScript['runAt'] | null {
+  const match = code.match(/\/\/\s*@run-at\s+(.+)/);
+  if (match) {
+    const value = match[1].trim();
+    if (value === 'document-start' || value === 'document-end') {
+      return value;
+    }
+  }
+  return null;
+}
+
+function updateMetadataBlock(
+  code: string,
+  name: string,
+  matches: string[],
+  runAt: UserScript['runAt']
+): string {
+  const hasMetaBlock = code.includes('==UserScript==');
+
+  if (!hasMetaBlock) {
+    // Create new metadata block
+    const matchLines = matches.map((m) => `// @match       ${m}`).join('\n');
+    const metaBlock = `// ==UserScript==
+// @name        ${name}
+${matchLines}
+// @run-at      ${runAt}
+// ==/UserScript==
+
+`;
+    return metaBlock + code;
+  }
+
+  // Update existing metadata block
+  let updatedCode = code;
+
+  // Update @name
+  if (updatedCode.match(/\/\/\s*@name\s+.+/)) {
+    updatedCode = updatedCode.replace(/\/\/\s*@name\s+.+/, `// @name        ${name}`);
+  } else {
+    updatedCode = updatedCode.replace(/(\/\/\s*==UserScript==)/, `$1\n// @name        ${name}`);
+  }
+
+  // Update @run-at
+  if (updatedCode.match(/\/\/\s*@run-at\s+.+/)) {
+    updatedCode = updatedCode.replace(/\/\/\s*@run-at\s+.+/, `// @run-at      ${runAt}`);
+  } else {
+    updatedCode = updatedCode.replace(/(\/\/\s*==\/UserScript==)/, `// @run-at      ${runAt}\n$1`);
+  }
+
+  // Update @match - remove all existing and add new ones
+  updatedCode = updatedCode.replace(/\/\/\s*@match\s+.+\n?/g, '');
+  const matchLines = matches.map((m) => `// @match       ${m}`).join('\n');
+  if (matchLines) {
+    updatedCode = updatedCode.replace(/(\/\/\s*@name\s+.+)/, `$1\n${matchLines}`);
+  }
+
+  return updatedCode;
+}
+
 export function ScriptEditor({ script, onSave, onCancel }: Props) {
   const [name, setName] = useState(script.name);
   const [matches, setMatches] = useState<string[]>(script.matches);
@@ -15,32 +74,50 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
   const [code, setCode] = useState(script.code);
   const [newMatch, setNewMatch] = useState('');
 
+  function handleNameChange(newName: string) {
+    setName(newName);
+    setCode((prevCode) => updateMetadataBlock(prevCode, newName, matches, runAt));
+  }
+
   function handleAddMatch() {
     const trimmed = newMatch.trim();
     if (trimmed && !matches.includes(trimmed)) {
-      setMatches([...matches, trimmed]);
+      const newMatches = [...matches, trimmed];
+      setMatches(newMatches);
       setNewMatch('');
+      setCode((prevCode) => updateMetadataBlock(prevCode, name, newMatches, runAt));
     }
   }
 
   function handleRemoveMatch(match: string) {
-    setMatches(matches.filter((m) => m !== match));
+    const newMatches = matches.filter((m) => m !== match);
+    setMatches(newMatches);
+    setCode((prevCode) => updateMetadataBlock(prevCode, name, newMatches, runAt));
+  }
+
+  function handleRunAtChange(newRunAt: UserScript['runAt']) {
+    setRunAt(newRunAt);
+    setCode((prevCode) => updateMetadataBlock(prevCode, name, matches, newRunAt));
   }
 
   function handleCodeChange(e: Event) {
     const newCode = (e.target as HTMLTextAreaElement).value;
     setCode(newCode);
 
-    // Auto-update matches from metadata if present
+    // Auto-update controls from metadata if present
     const parsedMatches = parseMatchMetadata(newCode);
     if (parsedMatches.length > 0) {
       setMatches(parsedMatches);
     }
 
-    // Auto-update name from metadata
     const nameMatch = newCode.match(/\/\/\s*@name\s+(.+)/);
     if (nameMatch) {
       setName(nameMatch[1].trim());
+    }
+
+    const parsedRunAt = parseRunAt(newCode);
+    if (parsedRunAt) {
+      setRunAt(parsedRunAt);
     }
   }
 
@@ -86,7 +163,7 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
           type="text"
           class="form-input"
           value={name}
-          onInput={(e) => setName((e.target as HTMLInputElement).value)}
+          onInput={(e) => handleNameChange((e.target as HTMLInputElement).value)}
         />
       </div>
 
@@ -121,7 +198,7 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
         <select
           class="run-at-select"
           value={runAt}
-          onChange={(e) => setRunAt((e.target as HTMLSelectElement).value as UserScript['runAt'])}
+          onChange={(e) => handleRunAtChange((e.target as HTMLSelectElement).value as UserScript['runAt'])}
         >
           <option value="document-end">Document End</option>
           <option value="document-start">Document Start</option>
