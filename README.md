@@ -35,10 +35,10 @@ The built extension will be in the `dist/` directory.
 Click the extension icon and open the Dashboard. Create a new script with the following format:
 
 ```javascript
-// ==UserScript==
+// ==BareScript==
 // @name        My Script
 // @match       https://example.com/*
-// ==/UserScript==
+// ==/BareScript==
 
 console.log('Hello from userscript!');
 ```

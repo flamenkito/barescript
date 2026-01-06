@@ -85,7 +85,7 @@
 
 .btn-danger:hover {
   background: var(--accent);
-  color: white;
+  color: var(--btn-primary-text, white);
 }
 
 .empty-state {

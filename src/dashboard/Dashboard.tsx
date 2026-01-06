@@ -23,12 +23,12 @@ export function Dashboard() {
       enabled: true,
       matches: ['*://*/*'],
       runAt: 'document-end',
-      code: `// ==UserScript==
+      code: `// ==BareScript==
 // @name        New Script
 // @match       *://*/*
-// ==/UserScript==
+// ==/BareScript==
 
-console.log('Hello from userscript!');
+console.log('Hello from BareScript!');
 `,
       updatedAt: Date.now(),
     };

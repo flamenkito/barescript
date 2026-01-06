@@ -1,10 +1,11 @@
 import { useState, useRef } from 'preact/hooks';
 import { parseMatchMetadata } from '@/utils/matcher';
+import { Select } from './Select';
 import type { UserScript } from '@/types/userscript';
 
 function getMetaBlockRange(code: string): { start: number; end: number } | null {
-  const startMatch = code.match(/\/\/\s*==UserScript==/);
-  const endMatch = code.match(/\/\/\s*==\/UserScript==/);
+  const startMatch = code.match(/\/\/\s*==BareScript==/);
+  const endMatch = code.match(/\/\/\s*==\/BareScript==/);
   if (!startMatch || !endMatch) return null;
   const start = startMatch.index!;
   const end = endMatch.index! + endMatch[0].length;
@@ -110,16 +111,16 @@ function updateMetadataBlock(
   matches: string[],
   runAt: UserScript['runAt']
 ): string {
-  const hasMetaBlock = code.includes('==UserScript==');
+  const hasMetaBlock = code.includes('==BareScript==');
 
   if (!hasMetaBlock) {
     // Create new metadata block
     const matchLines = matches.map((m) => `// @match       ${m}`).join('\n');
-    const metaBlock = `// ==UserScript==
+    const metaBlock = `// ==BareScript==
 // @name        ${name}
 ${matchLines}
 // @run-at      ${runAt}
-// ==/UserScript==
+// ==/BareScript==
 
 `;
     return metaBlock + code;
@@ -132,14 +133,14 @@ ${matchLines}
   if (updatedCode.match(/\/\/\s*@name\s+.+/)) {
     updatedCode = updatedCode.replace(/\/\/\s*@name\s+.+/, `// @name        ${name}`);
   } else {
-    updatedCode = updatedCode.replace(/(\/\/\s*==UserScript==)/, `$1\n// @name        ${name}`);
+    updatedCode = updatedCode.replace(/(\/\/\s*==BareScript==)/, `$1\n// @name        ${name}`);
   }
 
   // Update @run-at
   if (updatedCode.match(/\/\/\s*@run-at\s+.+/)) {
     updatedCode = updatedCode.replace(/\/\/\s*@run-at\s+.+/, `// @run-at      ${runAt}`);
   } else {
-    updatedCode = updatedCode.replace(/(\/\/\s*==\/UserScript==)/, `// @run-at      ${runAt}\n$1`);
+    updatedCode = updatedCode.replace(/(\/\/\s*==\/BareScript==)/, `// @run-at      ${runAt}\n$1`);
   }
 
   // Update @match - remove all existing and add new ones
@@ -289,14 +290,14 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
 
       <div class="form-group">
         <label class="form-label">Run At</label>
-        <select
-          class="run-at-select"
+        <Select
+          options={[
+            { value: 'document-end', label: 'Document End' },
+            { value: 'document-start', label: 'Document Start' },
+          ]}
           value={runAt}
-          onChange={(e) => handleRunAtChange((e.target as HTMLSelectElement).value as UserScript['runAt'])}
-        >
-          <option value="document-end">Document End</option>
-          <option value="document-start">Document Start</option>
-        </select>
+          onChange={(value) => handleRunAtChange(value as UserScript['runAt'])}
+        />
       </div>
 
       <div class="form-group">
