@@ -42,10 +42,23 @@ Click the extension icon and open the Dashboard. Create a new script with the fo
 // ==BareScript==
 // @name        My Script
 // @match       https://example.com/*
+// @run-at      document-end
 // ==/BareScript==
 
 console.log('Hello from userscript!');
 ```
+
+### Supported Directives
+
+| Directive | Description | Example |
+|-----------|-------------|---------|
+| `@name` | Script name displayed in dashboard | `@name My Script` |
+| `@match` | URL pattern where the script runs (can have multiple) | `@match https://example.com/*` |
+| `@run-at` | When to inject the script | `@run-at document-end` |
+
+**`@run-at` values:**
+- `document-end` (default) - Run after DOM is ready
+- `document-start` - Run before DOM is parsed
 
 ### Supported `@match` Patterns
 
@@ -58,6 +71,31 @@ console.log('Hello from userscript!');
 ```bash
 # Run in development mode with hot reload
 npm run dev
+```
+
+## Permissions
+
+BareScript requires the following Chrome extension permissions:
+
+| Permission | Why It's Needed |
+|------------|-----------------|
+| `storage` | Save your userscripts and settings locally |
+| `scripting` | Inject userscripts into web pages |
+| `tabs` | Detect page navigation to trigger script injection |
+| `host_permissions: *://*/*` | Allow scripts to run on any HTTP/HTTPS URL matching your `@match` patterns |
+
+**Privacy note:** BareScript does not collect any data. All scripts and settings are stored locally on your device. See our [Privacy Policy](https://github.com/flamenkito/barescript/blob/master/PRIVACY.md) for details.
+
+## Website
+
+Static site for landing page and privacy policy is in `docs/`.
+
+```bash
+# Preview locally
+npx serve docs
+
+# Or with specific port
+npx serve docs -p 3000
 ```
 
 ## Tech Stack
