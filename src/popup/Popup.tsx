@@ -62,12 +62,10 @@ export function Popup() {
         />
       </header>
 
-      <div class="script-list">
-        <div class="script-list-title">{hostname || 'Scripts'}</div>
-        {scripts.length === 0 ? (
-          <div class="no-scripts">No scripts for this page</div>
-        ) : (
-          scripts.map((script) => (
+      {scripts.length > 0 ? (
+        <div class="script-list">
+          <div class="script-list-title">{hostname || 'Scripts'}</div>
+          {scripts.map((script) => (
             <div class="script-item" key={script.id}>
               <span class="script-name">{script.name}</span>
               <div
@@ -77,9 +75,16 @@ export function Popup() {
                 aria-checked={script.enabled}
               />
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div class="no-scripts">
+          <svg class="no-scripts-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          No scripts for this page
+        </div>
+      )}
 
       <footer class="popup-footer">
         <a class="dashboard-link" onClick={openDashboard}>
