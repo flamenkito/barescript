@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BareScript - Lightweight Userscript Manager</title>
+  <link rel="icon" type="image/png" href="icon48.png">
+  <style>
+    :root {
+      --bg-primary: #f5f5f5;
+      --bg-secondary: #ffffff;
+      --text-primary: #333333;
+      --text-secondary: #666666;
+      --accent: #e63956;
+      --accent-hover: #d42e4a;
+      --yellow: #f7c601;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #252525;
+        --text-primary: #ffffff;
+        --text-secondary: #aaaaaa;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 60px 20px;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .logo img {
+      width: 80px;
+      height: 80px;
+    }
+    .logo h1 {
+      font-size: 48px;
+      font-weight: 700;
+    }
+    .tagline {
+      font-size: 20px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+    }
+    .cta {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      padding: 14px 32px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+      transition: background 0.2s;
+    }
+    .cta:hover {
+      background: var(--accent-hover);
+    }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+      margin-bottom: 60px;
+    }
+    .feature {
+      background: var(--bg-secondary);
+      padding: 24px;
+      border-radius: 12px;
+    }
+    .feature h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .feature p {
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    .footer {
+      text-align: center;
+      padding-top: 40px;
+      border-top: 1px solid var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    .footer a {
+      color: var(--text-secondary);
+      text-decoration: none;
+    }
+    .footer a:hover {
+      color: var(--text-primary);
+    }
+    .links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div class="logo">
+        <img src="icon128.png" alt="BareScript">
+        <h1>BareScript</h1>
+      </div>
+      <p class="tagline">Lightweight userscript manager for Chrome.<br>Simple. Fast. No bloat.</p>
+      <a href="https://chrome.google.com/webstore" class="cta">Add to Chrome</a>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <h3>Simple Scripts</h3>
+        <p>Create custom JavaScript that runs on specific websites using @match patterns.</p>
+      </div>
+      <div class="feature">
+        <h3>Clean Dashboard</h3>
+        <p>Manage all your scripts from a simple, fast dashboard with syntax highlighting.</p>
+      </div>
+      <div class="feature">
+        <h3>Privacy First</h3>
+        <p>No tracking, no cloud sync. Your scripts stay on your device.</p>
+      </div>
+      <div class="feature">
+        <h3>Dark Mode</h3>
+        <p>Automatic dark mode support that follows your system preference.</p>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <div class="links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="https://github.com/flamenkito/barescript">GitHub</a>
+      </div>
+      <p>BareScript is open source and free to use.</p>
+    </footer>
+  </div>
+</body>
+</html>
