@@ -2,6 +2,7 @@
   "name": "barescript",
   "version": "1.0.0",
   "description": "Lightweight userscript manager for Chrome",
+  "license": "Unlicense",
   "type": "module",
   "scripts": {
     "dev": "vite build --watch",
