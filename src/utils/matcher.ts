@@ -79,12 +79,12 @@ export function parseMatchMetadata(code: string): string[] {
   for (const line of lines) {
     const trimmed = line.trim();
 
-    if (trimmed.includes('==UserScript==')) {
+    if (trimmed.includes('==BareScript==')) {
       inMetaBlock = true;
       continue;
     }
 
-    if (trimmed.includes('==/UserScript==')) {
+    if (trimmed.includes('==/BareScript==')) {
       break;
     }
 
