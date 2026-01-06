@@ -3,6 +3,7 @@
   "name": "BareScript",
   "version": "1.0.0",
   "description": "Lightweight userscript manager",
+  "homepage_url": "https://barescript.org",
   "permissions": ["storage", "scripting", "tabs"],
   "host_permissions": ["*://*/*"],
   "background": {
