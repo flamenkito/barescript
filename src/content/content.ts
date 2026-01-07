@@ -1,22 +1,29 @@
 // Content script - runs at document_start
-// Notifies background when body is available for script injection
+// Notifies background when body is available
 
 (async () => {
-  const url = location.href;
-  if (url.startsWith('chrome://') || url.startsWith('chrome-extension://')) return;
+  if (!location.href.startsWith('http://') && !location.href.startsWith('https://')) return;
 
-  function notifyBackground() {
-    chrome.runtime.sendMessage({ type: 'BODY_READY', url });
+  function notifyBodyReady() {
+    chrome.runtime.sendMessage({ type: 'BODY_READY', url: location.href });
   }
 
+  // Initial page load
   if (document.body) {
-    notifyBackground();
+    notifyBodyReady();
   } else {
     new MutationObserver((_, obs) => {
       if (document.body) {
         obs.disconnect();
-        notifyBackground();
+        notifyBodyReady();
       }
     }).observe(document.documentElement, { childList: true });
   }
+
+  // Back/forward navigation (bfcache)
+  window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+      chrome.runtime.sendMessage({ type: 'PAGE_RESTORED', url: location.href });
+    }
+  });
 })();
