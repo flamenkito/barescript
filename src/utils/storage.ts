@@ -17,6 +17,21 @@ export async function getAllScripts(): Promise<UserScript[]> {
   return Object.values(scripts);
 }
 
+export async function getScriptsOnly(): Promise<UserScript[]> {
+  const all = await getAllScripts();
+  return all.filter((s) => s.type !== 'library');
+}
+
+export async function getLibraries(): Promise<UserScript[]> {
+  const all = await getAllScripts();
+  return all.filter((s) => s.type === 'library');
+}
+
+export async function getLibraryByName(name: string): Promise<UserScript | null> {
+  const libraries = await getLibraries();
+  return libraries.find((lib) => lib.name === name) ?? null;
+}
+
 export async function getScript(id: string): Promise<UserScript | null> {
   const { scripts } = await getStorage();
   return scripts[id] ?? null;

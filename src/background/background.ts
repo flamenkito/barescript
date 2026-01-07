@@ -1,4 +1,4 @@
-import { getAllScripts, isExtensionEnabled } from '@/utils/storage';
+import { getAllScripts, isExtensionEnabled, getLibraries } from '@/utils/storage';
 import { urlMatchesAnyPattern } from '@/utils/matcher';
 import type { UserScript } from '@/types/userscript';
 
@@ -24,18 +24,81 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
 });
 
 async function injectMatchingScripts(tabId: number, url: string): Promise<void> {
-  const scripts = await getAllScripts();
-  const matchingScripts = scripts.filter(
-    (script) => script.enabled && urlMatchesAnyPattern(url, script.matches)
+  const allScripts = await getAllScripts();
+  const libraries = await getLibraries();
+
+  // Filter to only scripts (not libraries) that match the URL
+  const matchingScripts = allScripts.filter(
+    (script) =>
+      script.type !== 'library' &&
+      script.enabled &&
+      urlMatchesAnyPattern(url, script.matches)
   );
 
+  // Create a map of library name -> library for quick lookup
+  const libraryMap = new Map<string, UserScript>();
+  for (const lib of libraries) {
+    if (lib.enabled) {
+      libraryMap.set(lib.name, lib);
+    }
+  }
+
+  // Inject scripts (libraries are inlined via import transformation)
   for (const script of matchingScripts) {
-    await injectScript(tabId, script);
+    await injectScript(tabId, script, libraryMap);
   }
 }
 
-async function injectScript(tabId: number, script: UserScript): Promise<void> {
+function transformLibraryImports(
+  code: string,
+  libraryMap: Map<string, UserScript>
+): string {
+  // Transform imports into inlined library code
+  // Supports: import Lib from 'lib' and import { a, b } from 'lib'
+
+  const inlineLibrary = (libName: string): string | null => {
+    const library = libraryMap.get(libName);
+    if (!library) {
+      console.warn(`[barescript] Library not found: ${libName}`);
+      return null;
+    }
+    const libCode = library.code.replace(/export\s+default\s+/, 'return ');
+    return `(function() {\n${libCode}\n})()`;
+  };
+
+  let result = code;
+
+  // Handle: import { a, b } from 'lib'
+  result = result.replace(
+    /import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]\s*;?/g,
+    (_match, names, libName) => {
+      const inlined = inlineLibrary(libName);
+      if (!inlined) return `/* Library not found: ${libName} */`;
+      return `const {${names}} = ${inlined};`;
+    }
+  );
+
+  // Handle: import Lib from 'lib'
+  result = result.replace(
+    /import\s+(\w+)\s+from\s+['"]([^'"]+)['"]\s*;?/g,
+    (_match, varName, libName) => {
+      const inlined = inlineLibrary(libName);
+      if (!inlined) return `/* Library not found: ${libName} */`;
+      return `const ${varName} = ${inlined};`;
+    }
+  );
+
+  return result;
+}
+
+async function injectScript(
+  tabId: number,
+  script: UserScript,
+  libraryMap: Map<string, UserScript>
+): Promise<void> {
   try {
+    // Transform library imports into inlined library code
+    const cleanCode = transformLibraryImports(script.code, libraryMap);
     const wrappedCode = `
       (async function() {
         function waitForIdleDOM({ quietMs = 300, timeout = 10000 } = {}) {
@@ -70,7 +133,7 @@ async function injectScript(tabId: number, script: UserScript): Promise<void> {
         if (blurStyle) blurStyle.remove();
 
         console.log('[userscript:${script.name}] loaded');
-        ${script.code}
+        ${cleanCode}
       })();
     `;
 
@@ -108,14 +171,19 @@ async function handleCheckHasScripts(url: string): Promise<{ hasScripts: boolean
 
   const scripts = await getAllScripts();
   const hasScripts = scripts.some(
-    (script) => script.enabled && urlMatchesAnyPattern(url, script.matches)
+    (script) =>
+      script.type !== 'library' &&
+      script.enabled &&
+      urlMatchesAnyPattern(url, script.matches)
   );
   return { hasScripts };
 }
 
 async function handleGetMatchingScripts(url: string): Promise<UserScript[]> {
   const scripts = await getAllScripts();
-  return scripts.filter((script) => urlMatchesAnyPattern(url, script.matches));
+  return scripts.filter(
+    (script) => script.type !== 'library' && urlMatchesAnyPattern(url, script.matches)
+  );
 }
 
 console.log('[barescript] background service worker started');
