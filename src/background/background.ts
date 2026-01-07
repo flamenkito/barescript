@@ -2,36 +2,92 @@ import { getAllScripts, isExtensionEnabled, getLibraries } from '@/utils/storage
 import { urlMatchesAnyPattern } from '@/utils/matcher';
 import type { UserScript } from '@/types/userscript';
 
-// Inject scripts when tab is updated
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Only run when page has loaded
-  if (changeInfo.status !== 'complete') {
-    return;
-  }
+// Register document-start scripts on startup
+registerDocumentStartScripts();
 
-  // Check if extension is enabled
-  const enabled = await isExtensionEnabled();
-  if (!enabled) {
-    return;
+// Listen for storage changes to re-register scripts
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.scripts) {
+    registerDocumentStartScripts();
   }
+});
+
+// Inject document-end scripts when tab is fully loaded
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status !== 'complete') return;
+
+  const enabled = await isExtensionEnabled();
+  if (!enabled) return;
 
   const url = tab.url;
   if (!url || url.startsWith('chrome://') || url.startsWith('chrome-extension://')) {
     return;
   }
 
-  await injectMatchingScripts(tabId, url);
+  await injectMatchingScripts(tabId, url, 'document-end');
 });
 
-async function injectMatchingScripts(tabId: number, url: string): Promise<void> {
+async function registerDocumentStartScripts(): Promise<void> {
+  try {
+    // Unregister all existing barescript content scripts
+    const existing = await chrome.scripting.getRegisteredContentScripts();
+    const bareScriptIds = existing
+      .filter((s) => s.id.startsWith('barescript-'))
+      .map((s) => s.id);
+
+    if (bareScriptIds.length > 0) {
+      await chrome.scripting.unregisterContentScripts({ ids: bareScriptIds });
+    }
+
+    const enabled = await isExtensionEnabled();
+    if (!enabled) return;
+
+    const allScripts = await getAllScripts();
+    const libraries = await getLibraries();
+
+    // Build library map for inlining
+    const libraryMap = new Map<string, UserScript>();
+    for (const lib of libraries) {
+      if (lib.enabled) {
+        libraryMap.set(lib.name, lib);
+      }
+    }
+
+    // Get document-start scripts
+    const startScripts = allScripts.filter(
+      (s) => s.type !== 'library' && s.enabled && s.runAt === 'document-start' && s.matches.length > 0
+    );
+
+    // Store pre-processed scripts for webNavigation injection
+    await chrome.storage.local.set({
+      _documentStartScripts: startScripts.map(s => ({
+        id: s.id,
+        name: s.name,
+        matches: s.matches,
+        code: transformLibraryImports(s.code, libraryMap)
+      }))
+    });
+
+    console.log(`[barescript] registered ${startScripts.length} document-start scripts`);
+  } catch (error) {
+    console.error('[barescript] failed to register document-start scripts:', error);
+  }
+}
+
+async function injectMatchingScripts(
+  tabId: number,
+  url: string,
+  runAt: 'document-start' | 'document-end'
+): Promise<void> {
   const allScripts = await getAllScripts();
   const libraries = await getLibraries();
 
-  // Filter to only scripts (not libraries) that match the URL
+  // Filter scripts by type, enabled, URL match, and runAt timing
   const matchingScripts = allScripts.filter(
     (script) =>
       script.type !== 'library' &&
       script.enabled &&
+      (script.runAt || 'document-end') === runAt &&
       urlMatchesAnyPattern(url, script.matches)
   );
 
@@ -100,38 +156,7 @@ async function injectScript(
     // Transform library imports into inlined library code
     const cleanCode = transformLibraryImports(script.code, libraryMap);
     const wrappedCode = `
-      (async function() {
-        function waitForIdleDOM({ quietMs = 300, timeout = 10000 } = {}) {
-          return new Promise((resolve, reject) => {
-            let timer = null;
-            const done = () => { cleanup(); resolve(); };
-            const fail = () => { cleanup(); reject(new Error("Timeout waiting for DOM idle")); };
-            const obs = new MutationObserver(() => {
-              clearTimeout(timer);
-              timer = setTimeout(done, quietMs);
-            });
-            const cleanup = () => {
-              obs.disconnect();
-              clearTimeout(timer);
-              clearTimeout(deadline);
-            };
-            obs.observe(document, { childList: true, subtree: true, attributes: true });
-            timer = setTimeout(done, quietMs);
-            const deadline = setTimeout(fail, timeout);
-          });
-        }
-
-        // Wait for DOM idle
-        try {
-          await waitForIdleDOM();
-        } catch (e) {
-          console.warn('[userscript:${script.name}] DOM idle timeout');
-        }
-
-        // Remove blur applied by content script
-        const blurStyle = document.getElementById('barescript-blur');
-        if (blurStyle) blurStyle.remove();
-
+      (function() {
         console.log('[userscript:${script.name}] loaded');
         ${cleanCode}
       })();
@@ -139,12 +164,7 @@ async function injectScript(
 
     await chrome.scripting.executeScript({
       target: { tabId },
-      func: (code: string) => {
-        const scriptEl = document.createElement('script');
-        scriptEl.textContent = code;
-        (document.head || document.documentElement).appendChild(scriptEl);
-        scriptEl.remove();
-      },
+      func: (code: string) => new Function(code)(),
       args: [wrappedCode],
       world: 'MAIN',
     });
@@ -153,30 +173,43 @@ async function injectScript(
   }
 }
 
-// Get scripts matching current tab URL
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+// Handle messages from content script and popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'GET_MATCHING_SCRIPTS') {
     handleGetMatchingScripts(message.url).then(sendResponse);
     return true;
   }
-  if (message.type === 'CHECK_HAS_SCRIPTS') {
-    handleCheckHasScripts(message.url).then(sendResponse);
-    return true;
+  if (message.type === 'BODY_READY' && sender.tab?.id) {
+    injectDocumentStartScripts(sender.tab.id, message.url);
   }
 });
 
-async function handleCheckHasScripts(url: string): Promise<{ hasScripts: boolean }> {
+async function injectDocumentStartScripts(tabId: number, url: string): Promise<void> {
   const enabled = await isExtensionEnabled();
-  if (!enabled) return { hasScripts: false };
+  if (!enabled) return;
 
-  const scripts = await getAllScripts();
-  const hasScripts = scripts.some(
-    (script) =>
-      script.type !== 'library' &&
-      script.enabled &&
-      urlMatchesAnyPattern(url, script.matches)
-  );
-  return { hasScripts };
+  const { _documentStartScripts: scripts } = await chrome.storage.local.get('_documentStartScripts');
+  if (!scripts || scripts.length === 0) return;
+
+  for (const script of scripts) {
+    if (urlMatchesAnyPattern(url, script.matches)) {
+      const wrappedCode = `(function() {
+        console.log('[userscript:${script.name}] loaded');
+        ${script.code}
+      })();`;
+
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId },
+          func: (code: string) => new Function(code)(),
+          args: [wrappedCode],
+          world: 'MAIN',
+        });
+      } catch (e) {
+        console.error(`[userscript:${script.name}] injection failed:`, e);
+      }
+    }
+  }
 }
 
 async function handleGetMatchingScripts(url: string): Promise<UserScript[]> {
