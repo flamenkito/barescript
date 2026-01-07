@@ -66,6 +66,42 @@ export function urlMatchesAnyPattern(url: string, patterns: string[]): boolean {
   return patterns.some((pattern) => urlMatchesPattern(url, pattern));
 }
 
+export interface LibraryImport {
+  varName: string;
+  libName: string;
+  fullMatch: string;
+}
+
+/**
+ * Parse import statements for library dependencies.
+ * Supports: import Lib from 'library-name';
+ * Returns an array of library imports with variable names.
+ */
+export function parseLibraryImports(code: string): LibraryImport[] {
+  const imports: LibraryImport[] = [];
+  // Match: import VarName from 'lib-name'; or import VarName from "lib-name";
+  const importRegex = /import\s+(\w+)\s+from\s+['"]([^'"]+)['"]\s*;?/g;
+
+  let match;
+  while ((match = importRegex.exec(code)) !== null) {
+    const varName = match[1];
+    const libName = match[2].trim();
+    // Skip relative imports and node-style imports
+    if (!libName.startsWith('.') && !libName.startsWith('/')) {
+      imports.push({ varName, libName, fullMatch: match[0] });
+    }
+  }
+
+  return imports;
+}
+
+/**
+ * Get unique library names from imports.
+ */
+export function getLibraryNames(imports: LibraryImport[]): string[] {
+  return [...new Set(imports.map((i) => i.libName))];
+}
+
 /**
  * Parse @match metadata from script code.
  * Returns an array of match patterns.

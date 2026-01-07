@@ -37,6 +37,11 @@
   font-weight: 500;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .script-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
@@ -59,6 +64,29 @@
 .script-card-name {
   font-weight: 600;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.type-badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.type-script {
+  background: var(--accent);
+  color: var(--btn-primary-text, white);
+}
+
+.type-library {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
 }
 
 .script-card-matches {

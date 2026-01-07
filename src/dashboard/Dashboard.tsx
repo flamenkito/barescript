@@ -16,16 +16,19 @@ export function Dashboard() {
     setScripts(all.sort((a, b) => b.updatedAt - a.updatedAt));
   }
 
-  function handleNew() {
+  function handleNewScript() {
     const newScript: UserScript = {
       id: generateId(),
       name: 'New Script',
       enabled: true,
+      type: 'script',
       matches: ['*://*/*'],
       runAt: 'document-end',
       code: `// ==BareScript==
 // @name        New Script
+// @type        script
 // @match       *://*/*
+// @run-at      document-end
 // ==/BareScript==
 
 console.log('Hello from BareScript!');
@@ -33,6 +36,31 @@ console.log('Hello from BareScript!');
       updatedAt: Date.now(),
     };
     setEditingScript(newScript);
+  }
+
+  function handleNewLibrary() {
+    const newLibrary: UserScript = {
+      id: generateId(),
+      name: 'my-library',
+      enabled: true,
+      type: 'library',
+      matches: [],
+      runAt: 'document-end',
+      code: `// ==BareScript==
+// @name        my-library
+// @type        library
+// ==/BareScript==
+
+// Usage: import MyLib from 'my-library';
+export default {
+  greet(name) {
+    return 'Hello, ' + name + '!';
+  }
+};
+`,
+      updatedAt: Date.now(),
+    };
+    setEditingScript(newLibrary);
   }
 
   async function handleSave(script: UserScript) {
@@ -76,16 +104,21 @@ console.log('Hello from BareScript!');
       </header>
 
       <div class="scripts-header">
-        <h2 class="scripts-title">Scripts</h2>
-        <button class="btn-primary" onClick={handleNew}>
-          + New Script
-        </button>
+        <h2 class="scripts-title">Scripts & Libraries</h2>
+        <div class="header-actions">
+          <button class="btn-primary" onClick={handleNewScript}>
+            + New Script
+          </button>
+          <button class="btn-secondary" onClick={handleNewLibrary}>
+            + New Library
+          </button>
+        </div>
       </div>
 
       {scripts.length === 0 ? (
         <div class="empty-state">
           <p>No scripts yet</p>
-          <button class="btn-primary" onClick={handleNew}>
+          <button class="btn-primary" onClick={handleNewScript}>
             Create your first script
           </button>
         </div>
@@ -93,8 +126,17 @@ console.log('Hello from BareScript!');
         scripts.map((script) => (
           <div class="script-card" key={script.id}>
             <div class="script-info">
-              <div class="script-card-name">{script.name}</div>
-              <div class="script-card-matches">{script.matches.join(', ')}</div>
+              <div class="script-card-name">
+                {script.name}
+                <span class={`type-badge ${script.type === 'library' ? 'type-library' : 'type-script'}`}>
+                  {script.type === 'library' ? 'Library' : 'Script'}
+                </span>
+              </div>
+              <div class="script-card-matches">
+                {script.type === 'library'
+                  ? `import ${script.name.replace(/-/g, '')} from '${script.name}';`
+                  : script.matches.join(', ')}
+              </div>
             </div>
             <div class="script-actions">
               <div

@@ -1,7 +1,10 @@
+export type ScriptType = 'script' | 'library';
+
 export interface UserScript {
   id: string;
   name: string;
   enabled: boolean;
+  type: ScriptType;
   matches: string[];
   runAt: 'document-start' | 'document-end';
   code: string;

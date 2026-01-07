@@ -1,7 +1,7 @@
 import { useState, useRef } from 'preact/hooks';
 import { parseMatchMetadata } from '@/utils/matcher';
 import { Select } from './Select';
-import type { UserScript } from '@/types/userscript';
+import type { UserScript, ScriptType } from '@/types/userscript';
 
 function getMetaBlockRange(code: string): { start: number; end: number } | null {
   const startMatch = code.match(/\/\/\s*==BareScript==/);
@@ -109,12 +109,22 @@ function updateMetadataBlock(
   code: string,
   name: string,
   matches: string[],
-  runAt: UserScript['runAt']
+  runAt: UserScript['runAt'],
+  type: ScriptType
 ): string {
   const hasMetaBlock = code.includes('==BareScript==');
 
   if (!hasMetaBlock) {
     // Create new metadata block
+    if (type === 'library') {
+      const metaBlock = `// ==BareScript==
+// @name        ${name}
+// @type        library
+// ==/BareScript==
+
+`;
+      return metaBlock + code;
+    }
     const matchLines = matches.map((m) => `// @match       ${m}`).join('\n');
     const metaBlock = `// ==BareScript==
 // @name        ${name}
@@ -136,18 +146,31 @@ ${matchLines}
     updatedCode = updatedCode.replace(/(\/\/\s*==BareScript==)/, `$1\n// @name        ${name}`);
   }
 
-  // Update @run-at
-  if (updatedCode.match(/\/\/\s*@run-at\s+.+/)) {
-    updatedCode = updatedCode.replace(/\/\/\s*@run-at\s+.+/, `// @run-at      ${runAt}`);
+  // Update @type
+  if (updatedCode.match(/\/\/\s*@type\s+.+/)) {
+    updatedCode = updatedCode.replace(/\/\/\s*@type\s+.+/, `// @type        ${type}`);
   } else {
-    updatedCode = updatedCode.replace(/(\/\/\s*==\/BareScript==)/, `// @run-at      ${runAt}\n$1`);
+    updatedCode = updatedCode.replace(/(\/\/\s*@name\s+.+)/, `$1\n// @type        ${type}`);
   }
 
-  // Update @match - remove all existing and add new ones
-  updatedCode = updatedCode.replace(/\/\/\s*@match\s+.+\n?/g, '');
-  const matchLines = matches.map((m) => `// @match       ${m}`).join('\n');
-  if (matchLines) {
-    updatedCode = updatedCode.replace(/(\/\/\s*@name\s+.+)/, `$1\n${matchLines}`);
+  if (type === 'library') {
+    // Remove @match and @run-at for libraries
+    updatedCode = updatedCode.replace(/\/\/\s*@match\s+.+\n?/g, '');
+    updatedCode = updatedCode.replace(/\/\/\s*@run-at\s+.+\n?/g, '');
+  } else {
+    // Update @run-at
+    if (updatedCode.match(/\/\/\s*@run-at\s+.+/)) {
+      updatedCode = updatedCode.replace(/\/\/\s*@run-at\s+.+/, `// @run-at      ${runAt}`);
+    } else {
+      updatedCode = updatedCode.replace(/(\/\/\s*==\/BareScript==)/, `// @run-at      ${runAt}\n$1`);
+    }
+
+    // Update @match - remove all existing and add new ones
+    updatedCode = updatedCode.replace(/\/\/\s*@match\s+.+\n?/g, '');
+    const matchLines = matches.map((m) => `// @match       ${m}`).join('\n');
+    if (matchLines) {
+      updatedCode = updatedCode.replace(/(\/\/\s*@type\s+.+)/, `$1\n${matchLines}`);
+    }
   }
 
   return updatedCode;
@@ -155,11 +178,14 @@ ${matchLines}
 
 export function ScriptEditor({ script, onSave, onCancel }: Props) {
   const [name, setName] = useState(script.name);
+  const [type, setType] = useState<ScriptType>(script.type || 'script');
   const [matches, setMatches] = useState<string[]>(script.matches);
   const [runAt, setRunAt] = useState(script.runAt);
   const [code, setCode] = useState(script.code);
   const [newMatch, setNewMatch] = useState('');
   const backdropRef = useRef<HTMLPreElement>(null);
+
+  const isLibrary = type === 'library';
 
   function handleScroll(e: Event) {
     const textarea = e.target as HTMLTextAreaElement;
@@ -171,7 +197,12 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
 
   function handleNameChange(newName: string) {
     setName(newName);
-    setCode((prevCode) => updateMetadataBlock(prevCode, newName, matches, runAt));
+    setCode((prevCode) => updateMetadataBlock(prevCode, newName, matches, runAt, type));
+  }
+
+  function handleTypeChange(newType: ScriptType) {
+    setType(newType);
+    setCode((prevCode) => updateMetadataBlock(prevCode, name, matches, runAt, newType));
   }
 
   function handleAddMatch() {
@@ -180,19 +211,19 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
       const newMatches = [...matches, trimmed];
       setMatches(newMatches);
       setNewMatch('');
-      setCode((prevCode) => updateMetadataBlock(prevCode, name, newMatches, runAt));
+      setCode((prevCode) => updateMetadataBlock(prevCode, name, newMatches, runAt, type));
     }
   }
 
   function handleRemoveMatch(match: string) {
     const newMatches = matches.filter((m) => m !== match);
     setMatches(newMatches);
-    setCode((prevCode) => updateMetadataBlock(prevCode, name, newMatches, runAt));
+    setCode((prevCode) => updateMetadataBlock(prevCode, name, newMatches, runAt, type));
   }
 
   function handleRunAtChange(newRunAt: UserScript['runAt']) {
     setRunAt(newRunAt);
-    setCode((prevCode) => updateMetadataBlock(prevCode, name, matches, newRunAt));
+    setCode((prevCode) => updateMetadataBlock(prevCode, name, matches, newRunAt, type));
   }
 
   function handleCodeChange(e: Event) {
@@ -210,6 +241,14 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
       setName(nameMatch[1].trim());
     }
 
+    const typeMatch = newCode.match(/\/\/\s*@type\s+(.+)/);
+    if (typeMatch) {
+      const parsedType = typeMatch[1].trim();
+      if (parsedType === 'library' || parsedType === 'script') {
+        setType(parsedType);
+      }
+    }
+
     const parsedRunAt = parseRunAt(newCode);
     if (parsedRunAt) {
       setRunAt(parsedRunAt);
@@ -220,7 +259,8 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
     const updated: UserScript = {
       ...script,
       name,
-      matches,
+      type,
+      matches: isLibrary ? [] : matches,
       runAt,
       code,
       updatedAt: Date.now(),
@@ -240,7 +280,7 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
       <header class="editor-header">
         <h2 class="editor-title">
           <img src="/icons/icon48.png" alt="BareScript" width="24" height="24" />
-          Edit Script
+          Edit {isLibrary ? 'Library' : 'Script'}
         </h2>
         <div class="editor-actions">
           <button class="btn-secondary" onClick={onCancel}>
@@ -260,45 +300,66 @@ export function ScriptEditor({ script, onSave, onCancel }: Props) {
           value={name}
           onInput={(e) => handleNameChange((e.target as HTMLInputElement).value)}
         />
+        {isLibrary && (
+          <div class="form-hint">
+            Import in scripts: <code>import {name.replace(/-/g, '')} from '{name}';</code>
+          </div>
+        )}
       </div>
 
       <div class="form-group">
-        <label class="form-label">Match Patterns</label>
-        <div class="matches-list">
-          {matches.map((match) => (
-            <span class="match-tag" key={match}>
-              {match}
-              <span class="match-remove" onClick={() => handleRemoveMatch(match)}>
-                &times;
-              </span>
-            </span>
-          ))}
-        </div>
-        <div class="match-input-row">
-          <input
-            type="text"
-            placeholder="https://example.com/*"
-            value={newMatch}
-            onInput={(e) => setNewMatch((e.target as HTMLInputElement).value)}
-            onKeyDown={handleKeyDown}
-          />
-          <button class="btn-secondary" onClick={handleAddMatch}>
-            Add
-          </button>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Run At</label>
+        <label class="form-label">Type</label>
         <Select
           options={[
-            { value: 'document-end', label: 'Document End' },
-            { value: 'document-start', label: 'Document Start' },
+            { value: 'script', label: 'Script' },
+            { value: 'library', label: 'Library' },
           ]}
-          value={runAt}
-          onChange={(value) => handleRunAtChange(value as UserScript['runAt'])}
+          value={type}
+          onChange={(value) => handleTypeChange(value as ScriptType)}
         />
       </div>
+
+      {!isLibrary && (
+        <>
+          <div class="form-group">
+            <label class="form-label">Match Patterns</label>
+            <div class="matches-list">
+              {matches.map((match) => (
+                <span class="match-tag" key={match}>
+                  {match}
+                  <span class="match-remove" onClick={() => handleRemoveMatch(match)}>
+                    &times;
+                  </span>
+                </span>
+              ))}
+            </div>
+            <div class="match-input-row">
+              <input
+                type="text"
+                placeholder="https://example.com/*"
+                value={newMatch}
+                onInput={(e) => setNewMatch((e.target as HTMLInputElement).value)}
+                onKeyDown={handleKeyDown}
+              />
+              <button class="btn-secondary" onClick={handleAddMatch}>
+                Add
+              </button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Run At</label>
+            <Select
+              options={[
+                { value: 'document-end', label: 'Document End' },
+                { value: 'document-start', label: 'Document Start' },
+              ]}
+              value={runAt}
+              onChange={(value) => handleRunAtChange(value as UserScript['runAt'])}
+            />
+          </div>
+        </>
+      )}
 
       <div class="form-group">
         <label class="form-label">Code</label>
