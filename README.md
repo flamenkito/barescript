@@ -12,6 +12,7 @@ A minimal alternative to Tampermonkey for running custom scripts on any website.
 - Simple dashboard for managing scripts
 - Per-script enable/disable toggle
 - Familiar userscript metadata format
+- **Libraries** - Create reusable code modules that scripts can import
 
 ## Building
 
@@ -53,6 +54,7 @@ console.log('Hello from userscript!');
 | Directive | Description | Example |
 |-----------|-------------|---------|
 | `@name` | Script name displayed in dashboard | `@name My Script` |
+| `@type` | Script type: `script` (default) or `library` | `@type library` |
 | `@match` | URL pattern where the script runs (can have multiple) | `@match https://example.com/*` |
 | `@run-at` | When to inject the script | `@run-at document-end` |
 
@@ -65,6 +67,51 @@ console.log('Hello from userscript!');
 - `*://*/*` - All HTTP/HTTPS URLs
 - `https://example.com/*` - Specific domain
 - `https://*.example.com/*` - Domain with subdomain wildcard
+
+## Libraries
+
+Libraries let you share code between scripts. Create reusable utilities once and import them in any script.
+
+### Creating a Library
+
+Click **+ New Library** in the Dashboard:
+
+```javascript
+// ==BareScript==
+// @name        my-utils
+// @type        library
+// ==/BareScript==
+
+export default {
+  hide(el) {
+    if (el) el.style.display = 'none';
+  },
+  show(el) {
+    if (el) el.style.display = '';
+  }
+};
+```
+
+### Using Libraries in Scripts
+
+Import with ES module syntax:
+
+```javascript
+// ==BareScript==
+// @name        My Script
+// @match       https://example.com/*
+// ==/BareScript==
+
+// Default import
+import utils from 'my-utils';
+utils.hide(document.querySelector('.ad'));
+
+// Or named imports
+import { hide, show } from 'my-utils';
+hide(document.querySelector('.banner'));
+```
+
+Libraries are inlined at injection time - no runtime loading or global pollution.
 
 ## Development
 
