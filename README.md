@@ -129,6 +129,7 @@ BareScript requires the following Chrome extension permissions:
 | `storage` | Save your userscripts and settings locally |
 | `scripting` | Inject userscripts into web pages |
 | `tabs` | Detect page navigation to trigger script injection |
+| `webNavigation` | Detect SPA navigation (pushState/replaceState) to re-run scripts |
 | `host_permissions: *://*/*` | Allow scripts to run on any HTTP/HTTPS URL matching your `@match` patterns |
 
 **Privacy note:** BareScript does not collect any data. All scripts and settings are stored locally on your device. See our [Privacy Policy](https://github.com/flamenkito/barescript/blob/master/PRIVACY.md) for details.
