@@ -59,8 +59,8 @@ console.log('Hello from userscript!');
 | `@run-at` | When to inject the script | `@run-at document-end` |
 
 **`@run-at` values:**
-- `document-end` (default) - Run after DOM is ready
-- `document-start` - Run before DOM is parsed
+- `document-end` (default) - Run after page is fully loaded
+- `document-start` - Run as soon as `document.body` is available (earliest possible)
 
 ### Supported `@match` Patterns
 

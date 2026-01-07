@@ -1,23 +1,19 @@
 # BareScript Examples
 
-## Habr - Clean Reader Mode
+## Library: DOM Utilities
 
-Removes sidebar, banners, and expands content to full width.
+Create a reusable library with common DOM helpers.
 
 ```javascript
 // ==BareScript==
-// @name        Habr
-// @match       https://habr.com/*
-// @run-at      document-end
+// @name        bs
+// @type        library
 // ==/BareScript==
-
-console.log('Hello from userscript!');
 
 const parent = (level, callback) => {
   return (el) => {
     let n = level | 0;
     if (n < 0) n = 0;
-
     while (n-- > 0 && el) el = el.parentElement;
     callback(el);
   };
@@ -33,16 +29,29 @@ const hide = style({ display: 'none' });
 
 const run = (callback) => {
   let i = 0;
-
   const handler = setInterval(() => {
     callback();
-
     i += 1;
     if (i >= 100) clearInterval(handler);
   }, 100);
-
   return () => clearInterval(handler);
 };
+
+export default { parent, style, hide, run };
+```
+
+## Habr - Clean Reader Mode
+
+Removes sidebar, banners, and expands content to full width. Uses the `bs` library.
+
+```javascript
+// ==BareScript==
+// @name        Habr
+// @match       https://habr.com/*
+// @run-at      document-start
+// ==/BareScript==
+
+import { hide, style, parent, run } from 'bs';
 
 run(() => {
   document.querySelectorAll('.tm-page__sidebar').forEach(hide);
@@ -61,19 +70,4 @@ run(() => {
   document.querySelectorAll('.tm-project-block--vacancies').forEach(hide);
   document.querySelectorAll('.tm-project-block--courses').forEach(hide);
 });
-```
-
-## Example.com - Dark Mode
-
-Simple dark mode for example.com.
-
-```javascript
-// ==BareScript==
-// @name        Example
-// @match       https://example.com/*
-// @run-at      document-end
-// ==/BareScript==
-
-document.body.style.background = '#1a1a1a';
-document.body.style.color = '#ffffff';
 ```
