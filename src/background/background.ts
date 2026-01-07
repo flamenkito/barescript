@@ -20,11 +20,25 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (!enabled) return;
 
   const url = tab.url;
-  if (!url || url.startsWith('chrome://') || url.startsWith('chrome-extension://')) {
+  if (!url || (!url.startsWith('http://') && !url.startsWith('https://'))) {
     return;
   }
 
   await injectMatchingScripts(tabId, url, 'document-end');
+});
+
+// SPA navigation - History API (pushState/replaceState)
+chrome.webNavigation.onHistoryStateUpdated.addListener(async (details) => {
+  if (details.frameId !== 0) return; // Only main frame
+
+  const enabled = await isExtensionEnabled();
+  if (!enabled) return;
+
+  const url = details.url;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return;
+
+  await injectDocumentStartScripts(details.tabId, url);
+  await injectMatchingScripts(details.tabId, url, 'document-end');
 });
 
 async function registerDocumentStartScripts(): Promise<void> {
@@ -181,6 +195,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (message.type === 'BODY_READY' && sender.tab?.id) {
     injectDocumentStartScripts(sender.tab.id, message.url);
+  }
+  if (message.type === 'PAGE_RESTORED' && sender.tab?.id) {
+    // Re-inject document-end scripts on back/forward navigation
+    injectMatchingScripts(sender.tab.id, message.url, 'document-end');
   }
 });
 
