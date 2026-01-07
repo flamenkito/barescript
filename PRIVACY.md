@@ -38,6 +38,9 @@ BareScript requires certain browser permissions to function. Here's why each is 
 ### Tabs Permission
 **Purpose:** Read the current tab's URL to determine which of your scripts should run on that page.
 
+### Web Navigation Permission
+**Purpose:** Detect when single-page applications (SPAs) navigate using the History API (pushState/replaceState). This allows your scripts to re-run when SPAs change pages without a full reload.
+
 ### Host Permissions (All URLs)
 **Purpose:** Allow your scripts to run on any website you choose.
 
