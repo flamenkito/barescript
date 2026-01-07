@@ -1,18 +1,22 @@
 // Content script - runs at document_start
-// Apply blur immediately, background will remove it after scripts run
+// Notifies background when body is available for script injection
 
 (async () => {
-  // Check if we have matching scripts for this URL
-  const response = await chrome.runtime.sendMessage({
-    type: 'CHECK_HAS_SCRIPTS',
-    url: location.href,
-  });
+  const url = location.href;
+  if (url.startsWith('chrome://') || url.startsWith('chrome-extension://')) return;
 
-  if (response?.hasScripts) {
-    // Apply blur immediately via style element (works before body exists)
-    const style = document.createElement('style');
-    style.id = 'barescript-blur';
-    style.textContent = 'html { filter: blur(5px) !important; transition: filter 0.2s; }';
-    (document.head || document.documentElement).appendChild(style);
+  function notifyBackground() {
+    chrome.runtime.sendMessage({ type: 'BODY_READY', url });
+  }
+
+  if (document.body) {
+    notifyBackground();
+  } else {
+    new MutationObserver((_, obs) => {
+      if (document.body) {
+        obs.disconnect();
+        notifyBackground();
+      }
+    }).observe(document.documentElement, { childList: true });
   }
 })();
