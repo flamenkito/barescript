@@ -1,11 +1,18 @@
 {
   "manifest_version": 3,
   "name": "BareScript",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Lightweight userscript manager",
   "homepage_url": "https://barescript.org",
-  "permissions": ["storage", "scripting", "tabs", "webNavigation"],
-  "host_permissions": ["*://*/*"],
+  "permissions": [
+    "storage",
+    "scripting",
+    "tabs",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "*://*/*"
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
@@ -25,8 +32,12 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*/*"],
-      "js": ["content.js"],
+      "matches": [
+        "*://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
       "run_at": "document_start"
     }
   ]
