@@ -1,30 +1,38 @@
 # Releasing
 
-## Release Script
+## 1. Update Changelog
+
+Move items from `[Unreleased]` to a new version heading in `CHANGELOG.md`.
+
+## 2. Run Release Script
 
 ```bash
 npm run release patch   # 1.0.0 → 1.0.1 (default)
 npm run release minor   # 1.0.0 → 1.1.0
 npm run release major   # 1.0.0 → 2.0.0
-npm run release 1.2.3   # set specific version
 ```
 
-This bumps the version in `package.json` and `public/manifest.json`, builds the extension, and creates a ZIP file for upload.
+This bumps version in `package.json` and `public/manifest.json`, builds, and creates `barescript-v{version}.zip`.
 
-## Git Workflow
+## 3. Commit and Tag
 
 ```bash
 git add -A && git commit -m "release: v1.0.1"
 git tag v1.0.1
-git push && git push --tags
 ```
 
-## Upload to Chrome Web Store
+## 4. Merge and Push
+
+```bash
+git checkout master
+git merge develop
+git push && git push --tags
+git checkout develop
+```
+
+## 5. Upload to Chrome Web Store
 
 1. Go to the [Chrome Developer Dashboard](https://chrome.google.com/webstore/devconsole)
-2. Select BareScript
-3. Click **Package** → **Upload new package**
-4. Upload the generated `barescript-v{version}.zip`
-5. Submit for review
-
-Updates typically take a few hours to a few days to be reviewed and published.
+2. Select BareScript → **Package** → **Upload new package**
+3. Upload the generated ZIP
+4. Submit for review
