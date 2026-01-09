@@ -120,6 +120,10 @@ Libraries are inlined at injection time - no runtime loading or global pollution
 npm run dev
 ```
 
+## Releasing
+
+See [RELEASING.md](RELEASING.md) for release instructions.
+
 ## Permissions
 
 BareScript requires the following Chrome extension permissions:
